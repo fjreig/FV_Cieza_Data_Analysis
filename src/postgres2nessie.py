@@ -39,7 +39,7 @@ properties = {
     "driver": "org.postgresql.Driver"
 }
 
-url_read = "jdbc:postgresql://postgres:5432/" + os.environ['POSTGRES_DB']
+url_read = "jdbc:postgresql://" + os.environ['POSTGRES_HOST '] + ":" + os.environ['POSTGRES_PORT '] + "/" + os.environ['POSTGRES_DB']
 table_name_read = "public.pabat_aarr"
 
 df = spark.read.jdbc(url_read, table_name_read, properties=properties)
