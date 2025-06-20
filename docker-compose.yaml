@@ -1,0 +1,70 @@
+version: "3"
+
+services:
+
+  nessie:
+    image: projectnessie/nessie:latest
+    container_name: nessie
+    ports:
+      - "19120:19120"
+    env_file:
+      - .env
+
+  minio:
+    image: minio/minio
+    container_name: minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - ./minio-data:/minio-data
+    entrypoint: >
+      /bin/sh -c "
+      minio server /data --console-address ':9001' &
+      sleep 5;
+      mc alias set myminio http://localhost:9000 admin password;
+      mc mb myminio/datalake;
+      mc mb myminio/datalakehouse;
+      mc mb myminio/warehouse;
+      mc mb myminio/seed;
+      mc cp /minio-data/* myminio/seed/;
+      tail -f /dev/null"
+    env_file:
+      - .env
+
+  spark:
+    image: bitnami/spark:3.5.2
+    container_name: spark
+    environment:
+      - SPARK_MODE=master
+      - SPARK_SUBMIT_ARGS=--packages org.apache.iceberg:iceberg-spark3-runtime:0.12.0
+    ports:
+      - "7077:7077"
+      - "8080:8080"
+    volumes:
+       - ./src:/opt/spark-apps
+    env_file:
+      - .env
+
+  dremio:
+    platform: linux/x86_64
+    image: dremio/dremio-oss:latest
+    container_name: dremio
+    ports:
+      - 9047:9047
+      - 31010:31010
+      - 32010:32010
+      - 45678:45678
+    env_file:
+      - .env
+  
+  postgres:
+    image: postgres:latest
+    container_name: postgres
+    volumes:
+      - ./postgres-data/create_tables.sql:/docker-entrypoint-initdb.d/create_tables.sql
+      - ./postgres-data/fill_tables.sql:/docker-entrypoint-initdb.d/fill_tables.sql
+    ports:
+      - "5432:5432"
+    env_file:
+      - .env
