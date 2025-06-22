@@ -6,7 +6,7 @@ import os
 ## DEFINE SENSITIVE VARIABLES
 CATALOG_URI = "http://nessie:19120/api/v1"  # Nessie Server URI
 WAREHOUSE = "s3://warehouse/"               # Minio Address to Write to
-STORAGE_URI = "http://172.19.0.5:9000"      # Minio IP address from docker inspect
+STORAGE_URI = "http://172.18.0.3:9000"      # Minio IP address from docker inspect
 
 # Configure Spark with necessary packages and Iceberg/Nessie settings
 conf = (
@@ -33,23 +33,59 @@ spark = SparkSession.builder.config(conf=conf).getOrCreate()
 print("Spark Session Started")
 
 ## Postgres Config
-properties = {
-    "user": os.environ['POSTGRES_PASSWORD'],
-    "password": os.environ['POSTGRES_PASSWORD'],
-    "driver": "org.postgresql.Driver"
-}
+url_read = "jdbc:postgresql://" + os.environ['POSTGRES_HOST'] + ":" + os.environ['POSTGRES_PORT'] + "/" + os.environ['POSTGRES_DB']
 
-url_read = "jdbc:postgresql://" + os.environ['POSTGRES_HOST '] + ":" + os.environ['POSTGRES_PORT '] + "/" + os.environ['POSTGRES_DB']
-table_name_read = "public.pabat_aarr"
+## Querys
+query_aarr = "select * from public.aarr where instalacion = 11"
+query_inv = "select * from public.inversor where instalacion = 11"
+query_emi = "select * from public.emi where instalacion = 11"
+query_logger = "select * from public.logger where instalacion = 11"
+query_variador = "select * from public.variador where instalacion = 11"
+query_pcs = "select * from public.pcs where instalacion = 11"
+query_bateria = "select * from public.bateria where instalacion = 11"
+query_prediccion_meteo = "select * from public.prediccion_meteo where localidad = 'cieza'"
+query_omie = "select * from public.omie"
 
-df = spark.read.jdbc(url_read, table_name_read, properties=properties)
-df.show()
 
-# Create the "sales" namespace
-spark.sql("CREATE NAMESPACE nessie.pabat;").show()
+def Consultar_Postgres(New_query):
+    df = (spark.read
+    .format("jdbc")
+    .option("url", url_read)
+    .option("query", New_query)
+    .option("driver", "org.postgresql.Driver")
+    .option("user", os.environ['POSTGRES_PASSWORD'])
+    .option("password", os.environ['POSTGRES_PASSWORD'])
+    .load()
+    )
+    df.show()
+    return(df)
 
-# Write the DataFrame to an Iceberg table in the Nessie catalog
-df.writeTo("nessie.pabat.aarr").createOrReplace()
+def main():
 
-# Stop the Spark session
-spark.stop()
+    df_aarr = Consultar_Postgres(query_aarr)
+    df_inv = Consultar_Postgres(query_inv)
+    df_emi = Consultar_Postgres(query_emi)
+    df_logger = Consultar_Postgres(query_logger)
+    df_variador = Consultar_Postgres(query_variador)
+    df_pcs = Consultar_Postgres(query_pcs)
+    df_bateria = Consultar_Postgres(query_bateria)
+    df_prediccion_meteo = Consultar_Postgres(query_prediccion_meteo)
+
+    # Create the "monitorizacion" namespace
+    spark.sql("CREATE NAMESPACE IF NOT EXISTS nessie.monitorizacion;").show()
+
+    # Write the DataFrame to an Iceberg table in the Nessie catalog
+    df_aarr.writeTo("nessie.monitorizacion.aarr").createOrReplace()
+    df_inv.writeTo("nessie.monitorizacion.inversor").createOrReplace()
+    df_emi.writeTo("nessie.monitorizacion.emi").createOrReplace()
+    df_logger.writeTo("nessie.monitorizacion.logger").createOrReplace()
+    df_variador.writeTo("nessie.monitorizacion.variador").createOrReplace()
+    df_pcs.writeTo("nessie.monitorizacion.pcs").createOrReplace()
+    df_bateria.writeTo("nessie.monitorizacion.bateria").createOrReplace()
+    df_prediccion_meteo.writeTo("nessie.monitorizacion.prediccion_meteo").createOrReplace()
+
+    # Stop the Spark session
+    spark.stop()
+
+if __name__ == "__main__":
+    main()
