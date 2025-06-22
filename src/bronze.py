@@ -6,7 +6,7 @@ import os
 ## DEFINE SENSITIVE VARIABLES
 CATALOG_URI = "http://nessie:19120/api/v1"  # Nessie Server URI
 WAREHOUSE = "s3://warehouse/"               # Minio Address to Write to
-STORAGE_URI = "http://172.18.0.3:9000"      # Minio IP address from docker inspect
+STORAGE_URI = "http://172.18.0.4:9000"      # Minio IP address from docker inspect
 
 # Configure Spark with necessary packages and Iceberg/Nessie settings
 conf = (
@@ -33,7 +33,7 @@ spark = SparkSession.builder.config(conf=conf).getOrCreate()
 print("Spark Session Started")
 
 ## Postgres Config
-url_read = "jdbc:postgresql://" + os.environ['POSTGRES_HOST'] + ":" + os.environ['POSTGRES_PORT'] + "/" + os.environ['POSTGRES_DB']
+url_read = "jdbc:postgresql://" + os.environ['POSTGRES_HOST'] + ":" + os.environ['POSTGRES_PORT'] + "/Monitorizacion"
 
 ## Querys
 query_aarr = "select * from public.aarr where instalacion = 11"
@@ -61,7 +61,6 @@ def Consultar_Postgres(New_query):
     return(df)
 
 def main():
-
     df_aarr = Consultar_Postgres(query_aarr)
     df_inv = Consultar_Postgres(query_inv)
     df_emi = Consultar_Postgres(query_emi)
@@ -72,17 +71,17 @@ def main():
     df_prediccion_meteo = Consultar_Postgres(query_prediccion_meteo)
 
     # Create the "monitorizacion" namespace
-    spark.sql("CREATE NAMESPACE IF NOT EXISTS nessie.monitorizacion;").show()
+    spark.sql("CREATE NAMESPACE IF NOT EXISTS nessie.bronze;").show()
 
     # Write the DataFrame to an Iceberg table in the Nessie catalog
-    df_aarr.writeTo("nessie.monitorizacion.aarr").createOrReplace()
-    df_inv.writeTo("nessie.monitorizacion.inversor").createOrReplace()
-    df_emi.writeTo("nessie.monitorizacion.emi").createOrReplace()
-    df_logger.writeTo("nessie.monitorizacion.logger").createOrReplace()
-    df_variador.writeTo("nessie.monitorizacion.variador").createOrReplace()
-    df_pcs.writeTo("nessie.monitorizacion.pcs").createOrReplace()
-    df_bateria.writeTo("nessie.monitorizacion.bateria").createOrReplace()
-    df_prediccion_meteo.writeTo("nessie.monitorizacion.prediccion_meteo").createOrReplace()
+    df_aarr.writeTo("nessie.bronze.aarr").createOrReplace()
+    df_inv.writeTo("nessie.bronze.inversor").createOrReplace()
+    df_emi.writeTo("nessie.bronze.emi").createOrReplace()
+    df_logger.writeTo("nessie.bronze.logger").createOrReplace()
+    df_variador.writeTo("nessie.bronze.variador").createOrReplace()
+    df_pcs.writeTo("nessie.bronze.pcs").createOrReplace()
+    df_bateria.writeTo("nessie.bronze.bateria").createOrReplace()
+    df_prediccion_meteo.writeTo("nessie.bronze.prediccion_meteo").createOrReplace()
 
     # Stop the Spark session
     spark.stop()

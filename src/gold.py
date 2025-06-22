@@ -6,7 +6,7 @@ import os
 ## DEFINE SENSITIVE VARIABLES
 CATALOG_URI = "http://nessie:19120/api/v1"  # Nessie Server URI
 WAREHOUSE = "s3://warehouse/"               # Minio Address to Write to
-STORAGE_URI = "http://172.18.0.3:9000"      # Minio IP address from docker inspect
+STORAGE_URI = "http://172.18.0.4:9000"      # Minio IP address from docker inspect
 
 # Configure Spark with necessary packages and Iceberg/Nessie settings
 conf = (
@@ -31,10 +31,31 @@ conf = (
 # Start Spark session
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
 print("Spark Session Started")
-
+    
 def main():
+    # Create the "monitorizacion" namespace
+    spark.sql("CREATE NAMESPACE IF NOT EXISTS nessie.gold;").show()
+
     # Verify by reading from the Iceberg table
-    spark.read.table("nessie.monitorizacion.aarr").show()
+    spark.sql(
+        """
+        SELECT nessie.silver.aarr.fecha, sum(nessie.silver.aarr.pa) as pa_red, 
+        round(sum(nessie.silver.logger.pa_gen),1) as pa_gen,
+        round(sum(nessie.silver.bateria.pa),1) as pa_bat, 
+        round(sum(nessie.silver.bateria.pa)+sum(nessie.silver.logger.pa_gen)+avg(nessie.silver.aarr.pa),1) as pa_consumo,
+        round(sum(nessie.silver.bateria.soc),1) as soc,
+        avg(nessie.silver.aarr.ea_import) as ea_import, avg(nessie.silver.aarr.ea_export) as ea_export,
+        round(sum(nessie.silver.bateria.ea_import),1) as ea_carga,
+        round(sum(nessie.silver.bateria.ea_export),1) as ea_descarga,
+        round(sum(nessie.silver.logger.ea_gen),1) as ea_gen
+        FROM nessie.silver.aarr
+        join nessie.silver.bateria on nessie.silver.bateria.fecha = nessie.silver.aarr.fecha
+        join nessie.silver.logger on nessie.silver.logger.fecha = nessie.silver.aarr.fecha
+        where nessie.silver.aarr.equipo = 42 and date(nessie.silver.aarr.fecha) = '2025-06-22'
+        group by nessie.silver.aarr.fecha
+        order by nessie.silver.aarr.fecha
+        """
+        ).show()   
 
     # Stop the Spark session
     spark.stop()

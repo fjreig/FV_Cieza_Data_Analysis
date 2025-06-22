@@ -10,7 +10,9 @@ docker inspect minio
 docker exec -it spark pip install py4j
 
 ```
-docker exec -it spark python3 /opt/spark-apps/postgres2nessie.py
+docker exec -it spark python3 /opt/spark-apps/bronze.py
+docker exec -it spark python3 /opt/spark-apps/silver.py
+docker exec -it spark python3 /opt/spark-apps/gold.py
 ```
 
 ## Nessie
