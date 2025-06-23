@@ -31,31 +31,95 @@ conf = (
 # Start Spark session
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
 print("Spark Session Started")
-    
+
 def main():
     # Create the "monitorizacion" namespace
     spark.sql("CREATE NAMESPACE IF NOT EXISTS nessie.gold;").show()
 
     # Verify by reading from the Iceberg table
-    spark.sql(
+    df_aarr = spark.sql(
         """
-        SELECT nessie.silver.aarr.fecha, sum(nessie.silver.aarr.pa) as pa_red, 
-        round(sum(nessie.silver.logger.pa_gen),1) as pa_gen,
-        round(sum(nessie.silver.bateria.pa),1) as pa_bat, 
-        round(sum(nessie.silver.bateria.pa)+sum(nessie.silver.logger.pa_gen)+avg(nessie.silver.aarr.pa),1) as pa_consumo,
-        round(sum(nessie.silver.bateria.soc),1) as soc,
-        avg(nessie.silver.aarr.ea_import) as ea_import, avg(nessie.silver.aarr.ea_export) as ea_export,
-        round(sum(nessie.silver.bateria.ea_import),1) as ea_carga,
-        round(sum(nessie.silver.bateria.ea_export),1) as ea_descarga,
-        round(sum(nessie.silver.logger.ea_gen),1) as ea_gen
-        FROM nessie.silver.aarr
-        join nessie.silver.bateria on nessie.silver.bateria.fecha = nessie.silver.aarr.fecha
-        join nessie.silver.logger on nessie.silver.logger.fecha = nessie.silver.aarr.fecha
-        where nessie.silver.aarr.equipo = 42 and date(nessie.silver.aarr.fecha) = '2025-06-22'
-        group by nessie.silver.aarr.fecha
-        order by nessie.silver.aarr.fecha
+        SELECT 
+            date(time_interval) as fecha, 
+            round(sum(ea_import),1) as ea_import, round(sum(ea_export), 1) as ea_export
+        FROM 
+            nessie.silver.aarr
+        group by 
+            Fecha
+        order by 
+            Fecha
         """
-        ).show()   
+        )
+    df_aarr.writeTo("nessie.gold.aarr").createOrReplace()
+    
+    df_emi = spark.sql(
+        """
+        SELECT
+            CAST(sumas_por_hora.hora AS date) AS fecha,
+            round(SUM(sumas_por_hora.radiacion),1) AS radiacion
+        FROM (
+            SELECT
+                DATE_TRUNC('hour', time_interval) AS hora,
+                avg(radiacion) as radiacion
+            FROM
+                nessie.silver.emi
+            GROUP BY
+                hora
+        ) AS sumas_por_hora
+        GROUP BY
+            fecha
+        ORDER BY
+            fecha;
+        """
+        )
+    df_emi.writeTo("nessie.gold.emi").createOrReplace()
+    
+    df_logger = spark.sql(
+        """
+        SELECT 
+            date(time_interval) as fecha, 
+            round(sum(ea_gen),1) as ea_gen
+        FROM 
+            nessie.silver.logger
+        group by 
+            Fecha
+        order by 
+            Fecha
+        """
+        )
+    df_logger.writeTo("nessie.gold.logger").createOrReplace()
+    
+    df_bateria = spark.sql(
+        """
+        SELECT 
+            date(time_interval) as fecha, 
+            round(max(soc),1) as max_soc, round(min(soc),1) as min_soc,
+            round(sum(ea_carga),1) as ea_carga,
+            round(sum(ea_descarga),1) as ea_descarga
+        FROM 
+            nessie.silver.bateria
+        group by 
+            Fecha
+        order by 
+            Fecha
+        """
+        )
+    df_bateria.writeTo("nessie.gold.bateria").createOrReplace()
+    
+    df_prediccion_meteo = spark.sql(
+        """
+        SELECT 
+            date(time_interval) as fecha, 
+            round(sum(radiacion),1) as radiacion
+        FROM 
+            nessie.silver.prediccion_meteo
+        group by 
+            Fecha
+        order by 
+            Fecha
+        """
+        )
+    df_prediccion_meteo.writeTo("nessie.gold.prediccion_meteo").createOrReplace()
 
     # Stop the Spark session
     spark.stop()

@@ -40,83 +40,115 @@ def main():
     # Verify by reading from the Iceberg table
     df_aarr = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, equipo, round(avg(pa),1) as pa,
-        round(max(ea_import)-min(ea_import),1) as ea_import,
-        round(max(ea_export)-min(ea_export),1) as ea_export
-        FROM nessie.bronze.aarr 
-        group by date_trunc('HOUR', fecha), equipo
-        order by date_trunc('HOUR', fecha), equipo
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            round(avg(pa),1) as pa,
+            round(max(ea_import)-min(ea_import),1) as ea_import,
+            round(max(ea_export)-min(ea_export),1) as ea_export
+        FROM
+            nessie.bronze.aarr 
+        GROUP BY
+            time_interval
+        ORDER BY
+            time_interval 
         """
         )
     df_aarr.writeTo("nessie.silver.aarr").createOrReplace()
     
     df_inversores = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, equipo, round(avg(pa),1) as pa,
-        round(max(ea_diaria)-min(ea_diaria),1) as ea_gen, avg(regulacion) as regulacion
-        FROM nessie.bronze.inversor
-        group by date_trunc('HOUR', fecha), equipo
-        order by date_trunc('HOUR', fecha), equipo
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            equipo, round(avg(pa),1) as pa, round(avg(regulacion),1) as regulacion,
+            round(max(ea_diaria)-min(ea_diaria),1) as ea_gen
+        FROM
+            nessie.bronze.inversor 
+        GROUP BY
+            time_interval, equipo
+        ORDER BY
+            time_interval, equipo
         """
         )
     df_inversores.writeTo("nessie.silver.inversor").createOrReplace()
     
     df_logger = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, 
-        round(avg(pa),1) as pa_gen, round(avg(pa_bat),1) as pa_bat,
-        round(max(ea_diaria)-min(ea_diaria),1) as ea_gen
-        FROM nessie.bronze.logger
-        group by date_trunc('HOUR', fecha)
-        order by date_trunc('HOUR', fecha)
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            round(avg(pa),1) as pa_gen, round(avg(pa_bat),1) as pa_bat,
+            round(max(ea_diaria)-min(ea_diaria),1) as ea_gen
+        FROM
+            nessie.bronze.logger 
+        GROUP BY
+            time_interval
+        ORDER BY
+            time_interval
         """
         )
     df_logger.writeTo("nessie.silver.logger").createOrReplace()
     
     df_variadores = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, equipo, 
-        round(avg(pa_motor),1) as pa, round(avg(frec_motor),1) as frecuencia
-        FROM nessie.bronze.variador
-        group by date_trunc('HOUR', fecha), equipo
-        order by date_trunc('HOUR', fecha), equipo
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            equipo, round(avg(pa_motor),1) as pa, round(avg(frec_motor),1) as frecuencia
+        FROM
+            nessie.bronze.variador 
+        GROUP BY
+            time_interval, equipo
+        ORDER BY
+            time_interval, equipo
         """
         )
     df_variadores.writeTo("nessie.silver.variador").createOrReplace()
     
     df_pcs = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, equipo, round(avg(pa),1) as pa,
-        round(max(ea_import)-min(ea_import),1) as ea_import,
-        round(max(ea_export)-min(ea_export),1) as ea_export
-        FROM nessie.bronze.pcs
-        group by date_trunc('HOUR', fecha), equipo
-        order by date_trunc('HOUR', fecha), equipo
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            equipo, round(avg(pa),1) as pa,
+            round(max(ea_import)-min(ea_import),1) as ea_import,
+            round(max(ea_export)-min(ea_export),1) as ea_export
+        FROM
+            nessie.bronze.pcs 
+        GROUP BY
+            time_interval, equipo
+        ORDER BY
+            time_interval, equipo
         """
         )
     df_pcs.writeTo("nessie.silver.pcs").createOrReplace()
     
     df_bateria = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, equipo, 
-        round(avg(pa),1) as pa, round(avg(soc),1) as soc,
-        round(max(ea_import_hoy)-min(ea_import_hoy),1) as ea_import,
-        round(max(ea_export_hoy)-min(ea_export_hoy),1) as ea_export
-        FROM nessie.bronze.bateria
-        where equipo = 98 or equipo = 99
-        group by date_trunc('HOUR', fecha), equipo
-        order by date_trunc('HOUR', fecha), equipo
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            equipo, round(avg(pa),1) as pa, round(avg(soc),1) as soc,
+            round(max(ea_import_hoy)-min(ea_import_hoy),1) as ea_carga,
+            round(max(ea_export_hoy)-min(ea_export_hoy),1) as ea_descarga
+        FROM
+            nessie.bronze.bateria
+        WHERE 
+            equipo = 98 or equipo = 99
+        GROUP BY
+            time_interval, equipo
+        ORDER BY
+            time_interval, equipo
         """
         )
     df_bateria.writeTo("nessie.silver.bateria").createOrReplace()
     
     df_predicciones_meteo = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, 
-        round(avg(radiacion),1) as radiacion, round(avg(temperatura),1) as temperatura
-        FROM nessie.bronze.prediccion_meteo
-        group by date_trunc('HOUR', fecha)
-        order by date_trunc('HOUR', fecha)
+        SELECT
+            date_trunc('hour', fecha) as time_interval,
+            round(avg(radiacion),1) as radiacion, round(avg(temperatura),1) as temperatura
+        FROM
+            nessie.bronze.prediccion_meteo 
+        GROUP BY
+            time_interval
+        ORDER BY
+            time_interval
         """
         )
     df_predicciones_meteo.writeTo("nessie.silver.prediccion_meteo").createOrReplace()
@@ -132,10 +164,15 @@ def main():
     df_emi_explode.createOrReplaceTempView("emi_explode")
     df_emi_explode = spark.sql(
         """
-        SELECT date_trunc('HOUR', fecha) as fecha, round(avg(radiacion),1) as radiacion
-        FROM emi_explode
-        group by date_trunc('HOUR', fecha)
-        order by date_trunc('HOUR', fecha)
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval,
+            round(avg(radiacion),1) as radiacion
+        FROM
+            emi_explode 
+        GROUP BY
+            time_interval
+        ORDER BY
+            time_interval
         """
         )
     df_emi_explode.writeTo("nessie.silver.emi").createOrReplace()

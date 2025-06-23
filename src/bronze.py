@@ -36,7 +36,7 @@ print("Spark Session Started")
 url_read = "jdbc:postgresql://" + os.environ['POSTGRES_HOST'] + ":" + os.environ['POSTGRES_PORT'] + "/Monitorizacion"
 
 ## Querys
-query_aarr = "select * from public.aarr where instalacion = 11"
+query_aarr = "select * from public.aarr where instalacion = 11 and equipo = 42"
 query_inv = "select * from public.inversor where instalacion = 11"
 query_emi = "select * from public.emi where instalacion = 11"
 query_logger = "select * from public.logger where instalacion = 11"
@@ -45,7 +45,6 @@ query_pcs = "select * from public.pcs where instalacion = 11"
 query_bateria = "select * from public.bateria where instalacion = 11"
 query_prediccion_meteo = "select * from public.prediccion_meteo where localidad = 'cieza'"
 query_omie = "select * from public.omie"
-
 
 def Consultar_Postgres(New_query):
     df = (spark.read
