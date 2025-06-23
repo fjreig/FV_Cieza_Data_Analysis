@@ -65,3 +65,12 @@ services:
       - "5432:5432"
     env_file:
       - .env
+  
+  superset:
+    image: apache/superset
+    container_name: superset
+    ports:
+      - 8010:8088
+    environment:
+      - SUPERSET_SECRET_KEY=cookiecookie4806
+      - TALISMAN_ENABLED=False

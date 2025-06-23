@@ -26,3 +26,49 @@ http://localhost:19120/tree/main
 ```
 http://localhost:9001/login
 ```
+
+## Superset
+
+```
+docker exec -it superset pip install sqlalchemy_dremio
+```
+
+```
+docker exec -it superset superset fab create-admin \
+              --username admin \
+              --firstname Admin \
+              --lastname Piae \
+              --email correo@gmail.com \
+              --password admin01
+```
+
+```
+docker exec -it superset superset db upgrade
+```
+
+```
+docker exec -it superset superset init
+```
+
+```
+dremio+flight://javi:javi$lol23@dremio:32010/?UseEncryption=false
+```
+
+### 5.1 Configurar Catalogo Nessie
+General settings tab
+* Source Name: nessie
+* Nessie Endpoint URL: http://nessie:19120/api/v2
+* Auth Type: None
+
+Storage settings tab
+* AWS Root Path: warehouse
+* AWS Access Key: admin
+* AWS Secret Key: password
+* Uncheck “Encrypt Connection” Box (since we aren’t using SSL)
+* Connection Properties
+
+| Key | Value |
+| ------------- |:-------------:|
+| fs.s3a.path.style.access | true |
+| fs.s3a.endpoint | minio:9000 |
+| dremio.s3.compat | true |
