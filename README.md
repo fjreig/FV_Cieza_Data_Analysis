@@ -13,6 +13,8 @@ docker exec -it spark pip install py4j
 docker exec -it spark python3 /opt/spark-apps/bronze.py
 docker exec -it spark python3 /opt/spark-apps/silver.py
 docker exec -it spark python3 /opt/spark-apps/gold.py
+
+docker exec -it spark python3 /opt/spark-apps/Tabla_conjunto.py
 ```
 
 ## Nessie
@@ -30,6 +32,7 @@ http://localhost:9001/login
 ## Superset
 
 ```
+docker exec -it superset pip install --upgrade pip
 docker exec -it superset pip install sqlalchemy_dremio
 ```
 
@@ -51,7 +54,8 @@ docker exec -it superset superset init
 ```
 
 ```
-dremio+flight://javi:javi$lol23@dremio:32010/?UseEncryption=false
+dremio+flight://pavener:javi$4875@dremio:32010/?UseEncryption=false
+dremio+pyodbc://pavener:javi$4875@dremio:31010
 ```
 
 ### 5.1 Configurar Catalogo Nessie

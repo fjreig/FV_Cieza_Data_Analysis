@@ -35,7 +35,7 @@ print("Spark Session Started")
 
 def main():
     # Verify by reading from the Iceberg table
-    df = spark.sql(
+    df_tabla_conjunto = spark.sql(
         """
         SELECT 
             nessie.gold.aarr.fecha, nessie.gold.aarr.ea_import, nessie.gold.aarr.ea_export,
@@ -57,7 +57,8 @@ def main():
             nessie.gold.prediccion_meteo on nessie.gold.prediccion_meteo.fecha = nessie.gold.aarr.fecha
         """
         )
-    df.show(df.count())
+    
+    df_tabla_conjunto.writeTo("nessie.gold.conjunto").createOrReplace()
   
     # Stop the Spark session
     spark.stop()

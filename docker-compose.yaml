@@ -67,10 +67,13 @@ services:
       - .env
   
   superset:
-    image: apache/superset
+    #image: apache/superset:latest
+    build:
+      context: .
+      dockerfile: dockerfile
     container_name: superset
+    restart: unless-stopped
     ports:
-      - 8010:8088
-    environment:
-      - SUPERSET_SECRET_KEY=cookiecookie4806
-      - TALISMAN_ENABLED=False
+      - "8088:8088"
+    #environment:
+    #  - SUPERSET_SECRET_KEY=pavenerpavener
