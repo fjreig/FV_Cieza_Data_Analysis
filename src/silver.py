@@ -153,6 +153,7 @@ def main():
         )
     df_predicciones_meteo.writeTo("nessie.silver.prediccion_meteo").createOrReplace()
 
+    ### Tablas de radiacion de las EMIs
     df_emi = spark.sql(
         """
         SELECT *
@@ -176,6 +177,38 @@ def main():
         """
         )
     df_emi_explode.writeTo("nessie.silver.emi").createOrReplace()
+
+    ### Tablas de los Strings de cada uno de los inversores
+    df_strings = spark.sql(
+        """
+        SELECT
+            fecha,equipo, i_s
+        FROM
+            nessie.bronze.inversor
+        """
+        )
+    
+    df_strings = df_strings.select("fecha", "equipo", json_tuple(col("i_s"), "Is1", "Is2", "Is3", "Is4", "Is5", "Is6", "Is7", "Is8", "Is9", "Is10", "Is11", "Is12", "Is13", "Is14", "Is15", "Is16", "Is17", "Is18", "Is19", "Is20")) \
+             .toDF("fecha", "equipo", "Is1", "Is2", "Is3", "Is4", "Is5", "Is6", "Is7", "Is8", "Is9", "Is10", "Is11", "Is12", "Is13", "Is14", "Is15", "Is16", "Is17", "Is18", "Is19", "Is20")
+    
+    df_strings.createOrReplaceTempView("strings_explode")
+    df_strings_explode = spark.sql(
+        """
+        SELECT
+            date_trunc('hour', fecha) + interval '15 minutes' * floor(date_part('minute', fecha) / 15) as time_interval, equipo,
+            round(avg(Is1),1) as Is1, round(avg(Is2),1) as Is2, round(avg(Is3),1) as Is3, round(avg(Is4),1) as Is4, round(avg(Is5),1) as Is5,
+            round(avg(Is6),1) as Is6, round(avg(Is7),1) as Is7, round(avg(Is8),1) as Is8, round(avg(Is9),1) as Is9, round(avg(Is10),1) as Is10,
+            round(avg(Is11),1) as Is11, round(avg(Is12),1) as Is12, round(avg(Is13),1) as Is13, round(avg(Is14),1) as Is14, round(avg(Is15),1) as Is15,
+            round(avg(Is16),1) as Is16, round(avg(Is17),1) as Is17, round(avg(Is18),1) as Is18, round(avg(Is19),1) as Is19, round(avg(Is20),1) as Is20
+        FROM
+            strings_explode 
+        GROUP BY
+            time_interval, equipo
+        ORDER BY
+            time_interval, equipo
+        """
+        )
+    df_strings_explode.writeTo("nessie.silver.strings").createOrReplace()
 
     # Stop the Spark session
     spark.stop()

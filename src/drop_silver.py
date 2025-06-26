@@ -30,7 +30,7 @@ conf = (
 
 # Start Spark session
 spark = SparkSession.builder.config(conf=conf).getOrCreate()
-print("Drop Tables Silver and Gold")
+print("Drop Tables Silver")
     
 def main():
     # Drop nessie silver tables
@@ -44,17 +44,6 @@ def main():
     spark.sql("DROP table IF EXISTS nessie.silver.prediccion_meteo;")
     spark.sql("DROP table IF EXISTS nessie.silver.emi;")
     spark.sql("DROP NAMESPACE IF EXISTS nessie.silver;")
-
-    # Drop nessie gold tables
-    spark.sql("DROP table IF EXISTS nessie.gold.aarr;")
-    spark.sql("DROP table IF EXISTS nessie.gold.inversor;")
-    spark.sql("DROP table IF EXISTS nessie.gold.logger;")
-    spark.sql("DROP table IF EXISTS nessie.gold.variador;")
-    spark.sql("DROP table IF EXISTS nessie.gold.pcs;")
-    spark.sql("DROP table IF EXISTS nessie.gold.bateria;")
-    spark.sql("DROP table IF EXISTS nessie.gold.prediccion_meteo;")
-    spark.sql("DROP table IF EXISTS nessie.gold.emi;")
-    spark.sql("DROP NAMESPACE IF EXISTS nessie.gold;")
 
     # Stop the Spark session
     spark.stop()

@@ -55,7 +55,6 @@ docker exec -it superset superset init
 
 ```
 dremio+flight://pavener:javi$4875@dremio:32010/?UseEncryption=false
-dremio+pyodbc://pavener:javi$4875@dremio:31010
 ```
 
 ### 5.1 Configurar Catalogo Nessie

@@ -42,6 +42,7 @@ query_emi = "select * from public.emi where instalacion = 11"
 query_logger = "select * from public.logger where instalacion = 11"
 query_variador = "select * from public.variador where instalacion = 11"
 query_pcs = "select * from public.pcs where instalacion = 11"
+query_rack = "select * from public.rack where instalacion = 11"
 query_bateria = "select * from public.bateria where instalacion = 11"
 query_prediccion_meteo = "select * from public.prediccion_meteo where localidad = 'cieza'"
 query_omie = "select * from public.omie"
@@ -66,6 +67,7 @@ def main():
     df_logger = Consultar_Postgres(query_logger)
     df_variador = Consultar_Postgres(query_variador)
     df_pcs = Consultar_Postgres(query_pcs)
+    df_rack = Consultar_Postgres(query_rack)
     df_bateria = Consultar_Postgres(query_bateria)
     df_prediccion_meteo = Consultar_Postgres(query_prediccion_meteo)
 
@@ -79,6 +81,7 @@ def main():
     df_logger.writeTo("nessie.bronze.logger").createOrReplace()
     df_variador.writeTo("nessie.bronze.variador").createOrReplace()
     df_pcs.writeTo("nessie.bronze.pcs").createOrReplace()
+    df_rack.writeTo("nessie.bronze.rack").createOrReplace()
     df_bateria.writeTo("nessie.bronze.bateria").createOrReplace()
     df_prediccion_meteo.writeTo("nessie.bronze.prediccion_meteo").createOrReplace()
 
